@@ -10,11 +10,11 @@ This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from
 
 2. Quick Usage
 
-The usage of the library is based on the WebUntisConnection class. Note that it is abstract and must be extended by the user to be used properly. That is because method results of the API differ between customers of Untis and can therefore not be generalized. But I created a class that can be used as a template, it already implements certain methods of the Untis API. Note: these might not work for you instantly and need further adaption.
+The usage of the library is based on the <i>WebUntisConnection</i> class. Note that it is abstract and must be extended by the user to be used properly. That is because method results of the API differ between customers of Untis and can therefore not be generalized. But I created a class that can be used as a template, it already implements certain methods of the Untis API. Note: these might not work for you instantly and need further adaption.
 
 <code>ApplicableWebUntisConnection connection = new ApplicableWebUntisConnection("school-sch", "poly", "username", "password");</code>
 
-After the creation of a WebUntisConnection instance, you may now call the WebUntisConnection#login method to connect to the server:
+After the creation of a <i>WebUntisConnection</i> instance, you may now call the <code>WebUntisConnection#login()</code> method to connect to the server:
 
 <code>
   if(connection.login())
@@ -25,7 +25,7 @@ After the creation of a WebUntisConnection instance, you may now call the WebUnt
 
 Btw: It is recommended to create a single account with a simple password and read only permissions for use in this library, as sensitive data or passwords may be obtained by third parties through decompilation etc!
 
-One of the implemented methods in the ApplicableWebUntisConnection is the 'getTeachers' method. So let's invoke it.
+One of the implemented methods in the <i>ApplicableWebUntisConnection</i> is the 'getTeachers' method. So let's invoke it.
 <code>ArrayList<> teachers = connection.getTeachers();</code>
 The result can now be processed in any way you want.
 
@@ -42,12 +42,12 @@ When calling methods of the library, following exceptions may be thrown:
 
 <b>WebUntisConnectionInvalidIDException</b>: Thrown when a result-id does not match up with a request-id (should never happen)
 
-<b>WebUntisConnectionResultException</b>: Thrown when theres a problem with correctly parsing the result with the JSON library. This might be the case when Untis changes its' something in their WebAPI
+<b>WebUntisConnectionResultException</b>: Thrown when theres a problem with correctly parsing the result with the JSON library. This might be the case when Untis changed something in their WebAPI
 
 
 4. Implementing own methods
 
-You might be interested to implement certain methods yourself, because the results differ to my implementation or I did not even implement that method. For that you need to extend the WebUntisConnection class:
+You might be interested to implement certain methods yourself, because the results differ to my implementation or I did not even implement that method yet. For that you need to extend the <i>WebUntisConnection</i> class:
 
 <code>
  
@@ -77,7 +77,7 @@ You might be interested to implement certain methods yourself, because the resul
     }
 </code>
 
-This is the basic structure of a method. You need a requestID by calling <code>Utils.getRandomId()</code>, then you can access the connection by calling <code>getConnection()</code> and execute requests with <code>#executeRequest(String request)</code>. The result of an execution should be pre-processed by calling <code>preProcess(String result, String requestID)</code> with the used requestID. This method will handle common exception cases and return a JSONObject that can now be used to gather required information. The rest is up to you, depending on the method and your needs.
+This is the basic structure of a method. You need a requestID by calling <code>Utils.getRandomId()</code>, then you can access the connection by calling <code>getConnection()</code> and execute requests with <code>WebUntisHTTPConnector#executeRequest(String request)</code>. The result of an execution should be pre-processed by calling <code>preProcess(String result, String requestID)</code> with the used requestID. This method will handle common exception cases and return a JSONObject that can now be used to gather required information. The rest is up to you, depending on the method and your needs.
 
 
 5. Feedback
