@@ -1,11 +1,11 @@
-# WebUntisAPI
+# WebUntisAPI for Java
 This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from Untis
 
 1. Installation
 
 	  - download latest build from builds folder / build latest version yourself
 	  - download JSON library http://jcenter.bintray.com/org/json/json/20151123/json-20151123.jar
-	  - add both .jars to the build path of your project
+	  - add both .jar files to the build path of your project
 
 
 2. Quick Use
