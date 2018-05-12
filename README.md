@@ -1,14 +1,14 @@
 # WebUntisAPI
 This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from Untis
 
-1. Installation
+<b>1. Installation</b>
 
 	  - download latest build from builds folder / build latest version yourself
 	  - download JSON library http://jcenter.bintray.com/org/json/json/20151123/json-20151123.jar
 	  - add both .jars to the build path of your project
 
 
-2. Quick Use
+<b>2. Quick Use</b>
 
 	The usage of the library is based on the <i>WebUntisConnection</i> class. Note that it is abstract and must be extended by the user to be used properly. That is because method results of the API differ between customers of Untis and can therefore not be generalized. But I created a class that can be used as a template, it already implements certain methods of the Untis API. Note: these might not work for you instantly and need further adaption.
 
@@ -32,7 +32,7 @@ This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from
 	You should always call <code>connection.logout()</code> when you are finished calling methods to free server resources (as stated in the official WebUntis documentation).
 
 
-3. Exception Handling
+<b>3. Exception Handling</b>
 
 	When calling methods of the library, following exceptions may be thrown:
 
@@ -45,7 +45,7 @@ This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from
 	<b>WebUntisConnectionResultException</b>: Thrown when theres a problem with correctly parsing the result with the JSON library. This might be the case when Untis changed something in their WebAPI
 
 
-4. Implementing own methods
+<b>4. Implementing own methods</b>
 
 	You might be interested to implement certain methods yourself, because the results differ to my implementation or I did not even implement that method yet. For that you need to extend the <i>WebUntisConnection</i> class:
 
@@ -78,11 +78,11 @@ This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from
 	This is the basic structure of a method. You need a requestID by calling <code>Utils.getRandomId()</code>, then you can access the connection by calling <code>getConnection()</code> and execute requests with <code>WebUntisHTTPConnector#executeRequest(String request)</code>. The result of an execution should be pre-processed by calling <code>preProcess(String result, String requestID)</code> with the used requestID. This method will handle common exception cases and return a JSONObject that can now be used to gather required information. The rest is up to you, depending on the method and your needs.
 
 
-5. Feedback
+<b>5. Feedback</b>
 
 	If you have any wishes/issues/difficulties, tell me!
 
 
-6. License
+<b>6. License</b>
 
 	You are allowed to use this library to your needs. You can rebuild it for yourself or use one of the pre-builds. Commericial use is also allowed.
