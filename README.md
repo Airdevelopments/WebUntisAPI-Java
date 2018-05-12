@@ -49,8 +49,6 @@ When calling methods of the library, following exceptions may be thrown:
 
 You might be interested to implement certain methods yourself, because the results differ to my implementation or I did not even implement that method yet. For that you need to extend the <i>WebUntisConnection</i> class:
 
-<code>
- 
     public class MyWebUntisConnection extends WebUntisConnection {
 
 	public MyWebUntisConnection(String school, String prefix, String user, String password) {
@@ -75,7 +73,7 @@ You might be interested to implement certain methods yourself, because the resul
 		return resultList;
 	}
     }
-</code>
+
 
 This is the basic structure of a method. You need a requestID by calling <code>Utils.getRandomId()</code>, then you can access the connection by calling <code>getConnection()</code> and execute requests with <code>WebUntisHTTPConnector#executeRequest(String request)</code>. The result of an execution should be pre-processed by calling <code>preProcess(String result, String requestID)</code> with the used requestID. This method will handle common exception cases and return a JSONObject that can now be used to gather required information. The rest is up to you, depending on the method and your needs.
 
