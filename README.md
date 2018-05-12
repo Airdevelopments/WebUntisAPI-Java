@@ -10,11 +10,11 @@ This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from
 
 2. Quick Usage
 
-The usage of the library is based on the WebUntisConnection class. Note that it is abstract and must be extended by the user to be used properly. That is because method results of the API differ between customers of Untis and can therefore not be generalized. But I created a class that can be used as template, it already implements certain methods of the Untis API. Note: these might not work for you instantly and need further adaption.
+The usage of the library is based on the WebUntisConnection class. Note that it is abstract and must be extended by the user to be used properly. That is because method results of the API differ between customers of Untis and can therefore not be generalized. But I created a class that can be used as a template, it already implements certain methods of the Untis API. Note: these might not work for you instantly and need further adaption.
 
 <code>ApplicableWebUntisConnection connection = new ApplicableWebUntisConnection("school-sch", "poly", "username", "password");</code>
 
-After the creation of an WebUntisConnection instance, you may now call the WebUntisConnection#login method to connect to the server:
+After the creation of a WebUntisConnection instance, you may now call the WebUntisConnection#login method to connect to the server:
 
 <code>
   if(connection.login())
@@ -25,7 +25,7 @@ After the creation of an WebUntisConnection instance, you may now call the WebUn
 
 Btw: It is recommended to create a single account with a simple password and read only permissions for use in this library, as sensitive data or passwords may be obtained by third parties through decompilation etc!
 
-On of the implemented method in the ApplicableWebUntisConnection is the 'getTeachers' method. So let's invoke it.
+One of the implemented methods in the ApplicableWebUntisConnection is the 'getTeachers' method. So let's invoke it.
 <code>ArrayList<> teachers = connection.getTeachers();</code>
 The result can now be processed in any way you want.
 
@@ -36,13 +36,13 @@ You should always call <code>connection.logout()</code> when you are finished ca
 
 When calling methods of the library, following exceptions may be thrown:
 
-WebUntisConnectionErrorException: Thrown when the server responded an error. <code>#getCode(),#getErrorMessage(),#getError()</code> may be used to get detailed information about the error.
+<b>WebUntisConnectionErrorException:</b> Thrown when the server responded an error. <code>#getCode(),#getErrorMessage(),#getError()</code> may be used to get detailed information about the error.
 
-WebUntisConnectionFailureException: Thrown when there has been a problem connecting to the server
+<b>WebUntisConnectionFailureException</b>: Thrown when there has been a problem connecting to the server
 
-WebUntisConnectionInvalidIDException: Thrown when a result-id does not match up with a request-id (should never happen)
+<b>WebUntisConnectionInvalidIDException</b>: Thrown when a result-id does not match up with a request-id (should never happen)
 
-WebUntisConnectionResultException: Thrown when theres a problem with correctly parsing the result with the JSON library. This might be the case when Untis changes its' something in their WebAPI
+<b>WebUntisConnectionResultException</b>: Thrown when theres a problem with correctly parsing the result with the JSON library. This might be the case when Untis changes its' something in their WebAPI
 
 
 4. Implementing own methods
