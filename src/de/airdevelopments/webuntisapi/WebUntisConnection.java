@@ -1,28 +1,34 @@
 package de.airdevelopments.webuntisapi;
 
-import java.util.ArrayList;
-
-import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import de.airdevelopments.webuntisapi.objects.Gender;
-import de.airdevelopments.webuntisapi.objects.Room;
-import de.airdevelopments.webuntisapi.objects.Student;
-import de.airdevelopments.webuntisapi.objects.Subject;
-import de.airdevelopments.webuntisapi.objects.Substitution;
-import de.airdevelopments.webuntisapi.objects.SubstitutionType;
-import de.airdevelopments.webuntisapi.objects.Teacher;
-
-
-public class WebUntisConnection {
+/**
+ * The base WebUntisConnection object, supporting login, logout, lastImport and check for persistency of session 
+ * @author MikisW
+ *
+ */
+public abstract class WebUntisConnection {
 	
-	private String sessionID;
-	private String password;
-	private String user;
+	private String user; //user credentials of the customer
+	private String password; //password of the customer
 	
-	private WebUntisHTTPConnector connection;
+	private WebUntisHTTPConnector connection; //supporting object for easy access to WebUntis web service server
 	
-	public WebUntisConnection(String school, String prefix, String user, String password) throws Exception
+	/**
+	 * Base WebUntisConnection, should be extended by a custom class, implementing required functionality. Read more about it on GitHub.
+	 * The {@link ApplicableWebUntisConnection}} class implements many of the available methods of the Untis documentation already and may be used as template or quick start.
+	 * <br><br>
+	 * Note: For the sake of security you should create a new account just for API access with read only permissions and a simple password! Sensitive passwords may be obtained otherwise by decompiling your code!
+	 * @param school The school name; can be obtained by logging into customer account on Untis web site and reading the URL parameters in web browser
+	 * @param prefix The URL server prefix; can be obtained by logging into customer account on Untis web site and reading the URL prefix in web browser
+	 * @param user The username of the account to be used
+	 * @param password The password of the account to be used
+	 * 
+	 * 
+	 * @see ApplicableWebUntisConnection
+	 */
+	public WebUntisConnection(String school, String prefix, String user, String password)
 	{
 		this.user = user;
 		this.password = password;
@@ -30,235 +36,144 @@ public class WebUntisConnection {
 		this.connection = new WebUntisHTTPConnector(school, prefix);
 	}
 	
-	public Boolean login()
+	/**
+	 * Executes the 'authenticate' method of the API to log into the given account and start a session. SessionID may be obtained by {@link #getSessionID}!
+	 * @return Indicator for successful login. True indicates a valid login, while false indicates a non specific failure.
+	 */
+	public final boolean login()
 	{
-		String id = Utils.getRandomId();
-		String result = connection.executeRequest("{\"id\":\""+id+"\",\"method\":\"authenticate\",\"params\":{\"user\":\""+user+"\",\"password\":\""+password+"\", \"client\":\"APP\"},\"jsonrpc\":\"2.0\"}");
+		String requestID = Utils.getRandomId(); //generate random id for the request
+		String result = connection.executeRequest("{\"id\":\""+requestID+"\",\"method\":\"authenticate\",\"params\":{\"user\":\""+user+"\",\"password\":\""+password+"\", \"client\":\"APP\"},\"jsonrpc\":\"2.0\"}");
 		
-		JSONObject responseData = new JSONObject(result);
-		if(responseData.has("error") || (!responseData.getString("id").equals(id)))
+		JSONObject resultData = preProcess(result, requestID); //handle common issues and catch result as JSONObject
+		
+		try
 		{
+			JSONObject innerResult = resultData.getJSONObject("result");
+			String sessionID = innerResult.getString("sessionId"); //get the sessionID declared by the server
+			
+			connection.setSessionID(sessionID); //setting up session id for connection support object
+			
+			return true; //login successful
+		}catch(Exception e) //any issue with reading final results will cause a break in consistency and therefore declare the login as failed
+		{
+			e.printStackTrace();
+			return false; //login failed
+		}
+	}
+	
+	/**
+	 * Uses the 'getLastestImportTime' method to test if the current session is still active. In an event of success it is guaranteed that the result is small compared to other methods like getTeachers, therefore saving time and maybe download volume on timed connections on mobile devices.
+	 * @return Indication if the current session is expired.
+	 */
+	public boolean hasSessionExpired()
+	{
+		String requestID = Utils.getRandomId(); //generate random id for the request
+		String result = connection.executeRequest("{\"id\":\""+requestID+"\",\"method\":\"getLatestImportTime\",\"params\":{},\"jsonrpc\":\"2.0\"}");
+		
+		try
+		{
+			JSONObject resultData = new JSONObject(result);
+			
+			String resultID = resultData.getString("id");
+			
+			if(resultData.has("error"))
+			{
+				JSONObject error = resultData.getJSONObject("error");
+				if(error.getInt("code") == WebUntisError.NOT_AUTHENTICATED.getCode())
+					return true;
+			}
+			
+			if(!resultID.equals(requestID)) //should never happen, though safety first
+			{
+				throw new WebUntisConnectionInvalidIDException("The result-id does not match the request-id! request-id: " + requestID + "   result-id: " + resultID);
+			}
+			
 			return false;
-		}
-		else
+		}catch(JSONException e)
 		{
-			JSONObject innerResult = responseData.getJSONObject("result");
-			sessionID = innerResult.getString("sessionId");
-			try
-			{
-				connection.setSessionID(sessionID);
-				return true;
-			}
-			catch(Exception e)
-			{
-				e.printStackTrace();
-				return false;
-			}
+			//e.printStackTrace(); disabled
+			throw new WebUntisConnectionResultException("The result of the request is corrupted or does not match the current implemented standards. This might be due to changes by Untis in the WebUntis JSON RPC API. If you are sure there has been a change by Untis, visit the GitHub page (https://github.com/Luftbaum/WebUntisAPI-Java) and open an issue!");
 		}
 	}
 	
-	public Boolean hasTimedOut()
+	/**
+	 * Executes the 'logout' method of the API to log out of the given account and end the current session. SessionID may be obtained by {@link #getSessionID}! May throw a {@link WebUntisConnectionErrorExcpetion} when not authenticated or session expired!
+	 */
+	public final void logout()
 	{
-		return getTeachers() == null;
-	}
-	
-	public Boolean logout()
-	{
-		String id = Utils.getRandomId();
-		String result = connection.executeRequest("{\"id\":\""+id+"\",\"method\":\"logout\",\"params\":{},\"jsonrpc\":\"2.0\"}");
+		String requestID = Utils.getRandomId(); //generate random id for the request
+		String result = connection.executeRequest("{\"id\":\""+requestID+"\",\"method\":\"logout\",\"params\":{},\"jsonrpc\":\"2.0\"}");
 		
-		JSONObject responseData = new JSONObject(result);
-		if(responseData.has("error") || (!responseData.getString("id").equals(id)))
-		{
-			return false;
-		}
-		else
-		{
-			return true;
-		}
+		preProcess(result, requestID); //handle common issues, discard result object
 	}
 	
-	public ArrayList<Teacher> getTeachers()
+	/**
+	 * Executes the 'getLatestImportTime' method of the API, returning a UNIX timestamp consisting of the date and time of the last import of data. May be used to avoid unnecessary download of information that actually has not changed.
+	 * @return The UNIX timestamp of the last time data has been imported to WebUntis
+	 */
+	public long getLastImport()
 	{
-		String id = Utils.getRandomId();
-		String result = connection.executeRequest("{\"id\":\""+id+"\",\"method\":\"getTeachers\",\"params\":{},\"jsonrpc\":\"2.0\"}");
+		String requestID = Utils.getRandomId(); //generate random id for the request
+		String result = connection.executeRequest("{\"id\":\""+requestID+"\",\"method\":\"getLatestImportTime\",\"params\":{},\"jsonrpc\":\"2.0\"}");
 		
-		JSONObject responseData = new JSONObject(result);
-		if(responseData.has("error") || (!responseData.getString("id").equals(id)))
-		{
-			return null;
-		}
+		JSONObject resultData = preProcess(result, requestID); //handle common issues and catch result as JSONObject
+		
+		if(resultData.has("result")) //ensure result is persistent
+			return resultData.getLong("result");
 		else
+			return -1; //something went wrong
+	}
+	
+	/**
+	 * Returns the current support connection object. Can be invoked by subclasses. Alternatively the direct access of 'connection' is possible.
+	 * @return The {@link WebUntisHTTPConnector} used by this connection
+	 */
+	protected WebUntisHTTPConnector getConnection()
+	{
+		return this.connection;
+	}
+	
+	/**
+	 * Support method, handling common errors and exceptions. Also returns result as processible JSONObject.
+	 * @param result The result of a request execution
+	 * @param requestID The request-id used for the method call
+	 * @return Inputed result String as JSONObject
+	 */
+	protected JSONObject preProcess(String result, String requestID)
+	{
+		try
 		{
-			ArrayList<Teacher> list = new ArrayList<Teacher>();
-			JSONArray teachers = responseData.getJSONArray("result");
+			JSONObject resultData = new JSONObject(result);
 			
-			for(int i = 0;i<teachers.length();i++)
-			{
-				JSONObject teacher = teachers.getJSONObject(i);
-				list.add(new Teacher(teacher.getString("name"), teacher.getString("foreName"), teacher.getString("longName")));
-			}
-			return list;
-		}
-	}
-	
-	public ArrayList<Student> getStudents()
-	{
-		String id = Utils.getRandomId();
-		String result = connection.executeRequest("{\"id\":\""+id+"\",\"method\":\"getStudents\",\"params\":{},\"jsonrpc\":\"2.0\"}");
-		
-		JSONObject responseData = new JSONObject(result);
-		if(responseData.has("error") || (!responseData.getString("id").equals(id)))
-		{
-			return null;
-		}
-		else
-		{
-			ArrayList<Student> list = new ArrayList<Student>();
-			JSONArray students = responseData.getJSONArray("result");
+			String resultID = resultData.getString("id");
 			
-			for(int i = 0;i<students.length();i++)
+			if(resultData.has("error"))
 			{
-				JSONObject student = students.getJSONObject(i);
-				list.add(new Student(student.getString("name"), student.getString("foreName"), student.getString("longName"), Gender.valueOf(student.getString("gender").toUpperCase())));
+				JSONObject error = resultData.getJSONObject("error");
+				throw new WebUntisConnectionErrorException(error.getString("message"), error.getInt("code"));
 			}
-			return list;
-		}
-	}
-	
-	public ArrayList<de.airdevelopments.webuntisapi.objects.Class> getClasses()
-	{
-		String id = Utils.getRandomId();
-		String result = connection.executeRequest("{\"id\":\""+id+"\",\"method\":\"getKlassen\",\"params\":{},\"jsonrpc\":\"2.0\"}");
-		
-		JSONObject responseData = new JSONObject(result);
-		if(responseData.has("error") || (!responseData.getString("id").equals(id)))
-		{
-			return null;
-		}
-		else
-		{
-			ArrayList<de.airdevelopments.webuntisapi.objects.Class> list = new ArrayList<de.airdevelopments.webuntisapi.objects.Class>();
-			JSONArray classes = responseData.getJSONArray("result");
 			
-			for(int i = 0;i<classes.length();i++)
+			if(!resultID.equals(requestID)) //should never happen, though safety first
 			{
-				JSONObject class_ = classes.getJSONObject(i);
-				list.add(new de.airdevelopments.webuntisapi.objects.Class(class_.getInt("id"), class_.getString("name"), class_.getString("longName")));
+				throw new WebUntisConnectionInvalidIDException("The result-id does not match the request-id! request-id: " + requestID + "   result-id: " + resultID);
 			}
-			return list;
-		}
-	}
-	
-	public ArrayList<Subject> getSubjects()
-	{
-		String id = Utils.getRandomId();
-		String result = connection.executeRequest("{\"id\":\""+id+"\",\"method\":\"getSubjects\",\"params\":{},\"jsonrpc\":\"2.0\"}");
-		
-		JSONObject responseData = new JSONObject(result);
-		if(responseData.has("error") || (!responseData.getString("id").equals(id)))
-		{
-			return null;
-		}
-		else
-		{
-			ArrayList<Subject> list = new ArrayList<Subject>();
-			JSONArray subjects = responseData.getJSONArray("result");
 			
-			for(int i = 0;i<subjects.length();i++)
-			{
-				JSONObject subject = subjects.getJSONObject(i);
-				list.add(new Subject(subject.getString("name"), subject.getString("longName")));
-			}
-			return list;
+			return resultData;
+		}catch(JSONException e)
+		{
+			//e.printStackTrace(); disabled
+			throw new WebUntisConnectionResultException("The result of the request is corrupted or does not match the current implemented standards. This might be due to changes by Untis in the WebUntis JSON RPC API. If you are sure there has been a change by Untis, visit the GitHub page (https://github.com/Luftbaum/WebUntisAPI-Java) and open an issue!");
 		}
 	}
 	
-	public ArrayList<Room> getRooms()
+	/**
+	 * Returns the current sessionID used. This sessionID might point to an expired session!
+	 * @return The sessionID as String
+	 */
+	public String getSessionID()
 	{
-		String id = Utils.getRandomId();
-		String result = connection.executeRequest("{\"id\":\""+id+"\",\"method\":\"getRooms\",\"params\":{},\"jsonrpc\":\"2.0\"}");
-		
-		JSONObject responseData = new JSONObject(result);
-		if(responseData.has("error") || (!responseData.getString("id").equals(id)))
-		{
-			return null;
-		}
-		else
-		{
-			ArrayList<Room> list = new ArrayList<Room>();
-			JSONArray rooms = responseData.getJSONArray("result");
-			
-			for(int i = 0;i<rooms.length();i++)
-			{
-				JSONObject room = rooms.getJSONObject(i);
-				list.add(new Room(room.getInt("id"), room.getString("name"), room.getString("longName")));
-			}
-			return list;
-		}
-	}
-	
-	public ArrayList<Substitution> getSubstitutions(String startDate, String endDate)
-	{
-		String id = Utils.getRandomId();
-		String result = connection.executeRequest("{\"id\":\""+id+"\",\"method\":\"getSubstitutions\",\"params\":{\"startDate\":"+startDate+",\"endDate\":"+endDate+",\"departmentId\":0},\"jsonrpc\":\"2.0\"}");
-		
-		JSONObject responseData = new JSONObject(result);
-		if(responseData.has("error") || (!responseData.getString("id").equals(id)))
-		{
-			System.out.println(responseData.toString());
-			return null;
-		}
-		else
-		{
-			ArrayList<Substitution> list = new ArrayList<Substitution>();
-			JSONArray substitutions = responseData.getJSONArray("result");
-			for(int i = 0;i<substitutions.length();i++)
-			{
-				JSONObject substitution = substitutions.getJSONObject(i);
-				Boolean text = substitution.has("txt");
-				if(substitution.getJSONArray("kl").length() != 0)
-				{
-					String classname = "";
-					JSONArray klassen = substitution.getJSONArray("kl");
-					for(int j = 0; j < klassen.length();j++)
-					{
-						classname += klassen.getJSONObject(j).getString("name") + ", ";
-					}
-					classname = classname.substring(0, classname.length()-2);
-					
-					String teacher = "";
-					JSONArray teachers = substitution.getJSONArray("te");
-					for(int j = 0; j < teachers.length();j++)
-					{
-						teacher += teachers.getJSONObject(j).getString("name") + ", ";
-					}
-					teacher = teacher.substring(0, teacher.length()-2);
-					
-					String subject = "";
-					JSONArray subjects = substitution.getJSONArray("su");
-					for(int j = 0; j < subjects.length();j++)
-					{
-						subject += subjects.getJSONObject(j).getString("name") + ", ";
-					}
-					subject = subject.substring(0, subject.length()-2);
-					
-					String room = "";
-					JSONArray rooms = substitution.getJSONArray("ro");
-					for(int j = 0; j < rooms.length();j++)
-					{
-						room += rooms.getJSONObject(j).getString("name") + ", ";
-					}
-					room = room.substring(0, room.length()-2);
-					
-					String txt = null;
-					if(text)
-						txt = substitution.getString("txt");
-					list.add(new Substitution(SubstitutionType.valueOf(substitution.getString("type").toUpperCase()), substitution.getInt("date"), classname, substitution.getInt("startTime"), teacher, subject, room, txt));
-				}
-			}
-			return list;
-		}
+		return this.connection.getSessionID();
 	}
 
 }
