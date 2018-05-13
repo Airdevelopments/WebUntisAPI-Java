@@ -1,5 +1,7 @@
 # WebUntisAPI for Java
-This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from Untis
+This is a simlpe Java Library/API to access the RESTful JSON RCP WebService from Untis.
+
+The jars in the 'builds' folder contain method and class documentation, which should be shown by your IDE after adding it to the classpath.
 
 1. Installation
 
