@@ -45,6 +45,30 @@ The jars in the 'builds' folder contain method and class documentation, which sh
 	<b>WebUntisConnectionInvalidIDException</b>: Thrown when a result-id does not match up with a request-id (should never happen)
 
 	<b>WebUntisConnectionResultException</b>: Thrown when theres a problem with correctly parsing the result with the JSON library. This might be the case when Untis changed something in their WebAPI
+	
+	Code example:
+		
+		ApplicableWebUntisConnection connection = new ApplicableWebUntisConnection("school-sch", "poly", "username", "******");
+		
+		try
+		{
+			if(connection.login())
+				System.out.println("Login Successful");
+
+			connection.getSubstitutions("20180212", "20181230");
+			
+			connection.logout();
+		}catch(WebUntisConnectionErrorException e)
+		{
+			if(e.getError() == WebUntisError.NO_RIGHT_FOR_METHOD)
+			{
+				System.out.println("Permissions need adjustment: " + e.getErrorMessage() + "(" + e.getCode() + ")");
+			}
+			else if(e.getError() == WebUntisError.METHOD_NOT_FOUND)
+			{
+				System.out.println("Seems like the API has changed!");
+			}
+		}
 
 
 4. Implementing own methods
