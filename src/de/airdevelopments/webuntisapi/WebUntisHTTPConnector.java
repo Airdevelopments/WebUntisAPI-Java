@@ -84,6 +84,44 @@ public class WebUntisHTTPConnector {
 	}
 	
 	/**
+	 * Executes a request for the WebUntis web service. Be sure only to use supported requests as defined in the 'WebUntis JSON-RPC API' documentation by Untis.
+	 * This method is recommended for use in secure operations.
+	 * <br><br>
+	 * Note: a non 'null' result may not indicate a successful execution of the request!
+	 * @param request The result of the executed request. Different to {@link WebUntisHTTPConnector#executeRequest(String)} due to the fact that the information is already in raw bytes.
+	 * @return Result of the given request
+	 */
+	public String executeRequest(byte[] request)
+	{
+		prepareConnection(); //ensure a connection to the server is established
+		try
+		{
+			StringBuilder result = new StringBuilder(); //forms the resulting string of the request
+			
+			//opening output stream for request
+			DataOutputStream output = new DataOutputStream(connection.getOutputStream());
+			output.write(request); //sending out request
+			output.flush(); //ensure complete writing for long requests
+			output.close(); //close output steam
+			
+			//opening input stream for the request result
+			BufferedReader rd = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+			String line;
+			while ((line = rd.readLine()) != null) { //accumulate data into StringBuilder 'result'
+				result.append(line);
+			}
+			rd.close(); //close input stream
+			
+			disconnect(); //disconnect from server to save resources; disconnecting does not mean the session has expired!
+			
+			return result.toString(); //return result from request (should be JSON formatted string)
+		}catch(IOException e)
+		{
+			throw new WebUntisConnectionFailureException("The connection to the server has been disturbed. Try again, if error persists check internet connection and permissions for sending and receiving data. Also a malformed request string could be the issue, ensure UTF-8 range.");
+		}
+	}
+	
+	/**
 	 * Prepares a fresh connection to the web service.
 	 */
 	private void prepareConnection()

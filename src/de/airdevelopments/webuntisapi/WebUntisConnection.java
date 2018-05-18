@@ -36,14 +36,65 @@ public abstract class WebUntisConnection {
 		this.connection = new WebUntisHTTPConnector(school, prefix);
 	}
 	
+	
+	/**
+	 * Similar to the {@link WebUntisConnection#WebUntisConnection(String, String, String, String)}} constructor, except it is featuring secure login. The constructor does not save the password, therefore calling {@link WebUntisConnection#login()} is not available; instead {@link WebUntisConnection#}
+	 * <br><br>
+	 * Note: For the sake of security you should create a new account just for API access with read only permissions and a simple password! Sensitive passwords may be obtained otherwise by decompiling your code!
+	 * @param school The school name; can be obtained by logging into customer account on Untis web site and reading the URL parameters in web browser
+	 * @param prefix The URL server prefix; can be obtained by logging into customer account on Untis web site and reading the URL prefix in web browser
+	 * @param user The username of the account to be used
+	 * 
+	 * 
+	 * @see WebUntisConnection
+	 */
+	public WebUntisConnection(String school, String prefix, String user)
+	{
+		this.user = user;
+		
+		this.connection = new WebUntisHTTPConnector(school, prefix);
+	}
+	
 	/**
 	 * Executes the 'authenticate' method of the API to log into the given account and start a session. SessionID may be obtained by {@link #getSessionID}!
 	 * @return Indicator for successful login. True indicates a valid login, while false indicates a non specific failure.
 	 */
 	public final boolean login()
 	{
+		if(password == null)
+			throw new IllegalArgumentException("There is no valid password available. Either you called the WebUntisConnection(String school, String prefix, String user) constructor and therefore should use WebUntisConnection#login(char[] password) or the given password was null.");
 		String requestID = Utils.getRandomId(); //generate random id for the request
 		String result = connection.executeRequest("{\"id\":\""+requestID+"\",\"method\":\"authenticate\",\"params\":{\"user\":\""+user+"\",\"password\":\""+password+"\", \"client\":\"APP\"},\"jsonrpc\":\"2.0\"}");
+		
+		JSONObject resultData = preProcess(result, requestID); //handle common issues and catch result as JSONObject
+		
+		try
+		{
+			JSONObject innerResult = resultData.getJSONObject("result");
+			String sessionID = innerResult.getString("sessionId"); //get the sessionID declared by the server
+			
+			connection.setSessionID(sessionID); //setting up session id for connection support object
+			
+			return true; //login successful
+		}catch(Exception e) //any issue with reading final results will cause a break in consistency and therefore declare the login as failed
+		{
+			e.printStackTrace();
+			return false; //login failed
+		}
+	}
+	
+	/**
+	 * Executes the 'authenticate' method of the API to log into the given account and start a session. SessionID may be obtained by {@link #getSessionID}!
+	 * @param password Char array is required to guarantee non String pool interactions
+	 * @return Indicator for successful login. True indicates a valid login, while false indicates a non specific failure.
+	 */
+	public final boolean login(char[] password)
+	{
+		String requestID = Utils.getRandomId(); //generate random id for the request
+
+		String result = connection.executeRequest(Utils.safeReplace("{\"id\":\""+requestID+"\",\"method\":\"authenticate\",\"params\":{\"user\":\""+user+"\",\"password\":\"%password%\", \"client\":\"APP\"},\"jsonrpc\":\"2.0\"}", "%password%", password));
+		
+		System.out.println(result);
 		
 		JSONObject resultData = preProcess(result, requestID); //handle common issues and catch result as JSONObject
 		
