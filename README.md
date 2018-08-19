@@ -12,10 +12,11 @@ The jars in the 'builds' folder contain method and class documentation, which sh
 
 2. Quick Use
 
-	The usage of the library is based on the <i>WebUntisConnection</i> class. Note that it is abstract and must be extended by the user to be used properly. That is because method results of the API differ between customers of Untis and can therefore not be generalized. But I created a class that can be used as a template, it already implements certain methods of the Untis API. Note: these might not work for you instantly and need further adaption.
+	The usage of the library is based on the <i>WebUntisConnection</i> class. Note that it is abstract and must be extended by the user to be used properly. That is because method results of the API differ between customers of Untis and can therefore not be generalized. But I created a class that can be used as a template, it already implements certain methods of the Untis API. Note: these might not work for you instantly and requires further adaption.
 
 	<code>ApplicableWebUntisConnection connection = new ApplicableWebUntisConnection("school-sch", "poly", "username", "password");</code>
 
+	Note: The prefix (2. parameter) of the constructor is the sub-url you see in your browser when logging into the web interface of Untis. For example: https://poly.webuntis.com derives to "poly" as the desired prefix. This can change due to changes by Untis and also may vary between customers.
 	After the creation of a <i>WebUntisConnection</i> instance, you may now call the <code>WebUntisConnection#login()</code> method to connect to the server:
 
 	<code>
